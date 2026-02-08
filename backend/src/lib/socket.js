@@ -9,7 +9,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: [ENV.CLIENT_URL],
+    origin: ENV.CLIENT_URL,
     credentials: true,
   },
 });
@@ -19,6 +19,7 @@ io.use(socketAuthMiddleware);
 
 // we will use this function to check if the user is online or not
 export function getReceiverSocketId(userId) {
+  console.log("userid received:", userId);
   return userSocketMap[userId];
 }
 
