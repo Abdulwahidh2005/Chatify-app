@@ -31,7 +31,6 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post("/auth/signup", data);
       set({ authUser: res.data });
-
       toast.success("Account created successfully!");
       get().connectSocket();
     } catch (error) {
@@ -91,6 +90,19 @@ export const useAuthStore = create((set, get) => ({
     socket.connect();
 
     set({ socket });
+
+    // Debug listeners - to see connection status in console
+    socket.on("connect", () => {
+      console.log("Socket connected successfully:", socket.id);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log("Socket disconnected:", reason);
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error.message);
+    });
 
     // listen for online users event
     socket.on("getOnlineUsers", (userIds) => {
