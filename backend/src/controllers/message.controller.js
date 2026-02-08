@@ -1,6 +1,7 @@
 import Message from "../models/Message.js";
 import User from "../models/User.js";
 import cloudinary from "../lib/cloudinary.js";
+import { getReceiverSocketId, io } from "../lib/socket.js";
 
 export const getUsersForSidebar = async (req, res) => {
   try {
@@ -55,6 +56,12 @@ export const sendMessage = async (req, res) => {
 
     await newMessage.save();
 
+    // Emit to receiver via Socket.IO for real-time delivery
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("newMessage", newMessage);
+    }
+
     res.status(201).json(newMessage);
   } catch (error) {
     console.log("Error in sendMessage controller: ", error.message);
@@ -62,27 +69,27 @@ export const sendMessage = async (req, res) => {
   }
 };
 
-export const getChatPartners = async(req,res) => {
+export const getChatPartners = async (req, res) => {
   try {
     const loggedInUserId = req.user._id;
     const messages = await Message.find({
-      $or:[
-        {receiverId:loggedInUserId},
-        {senderId:loggedInUserId}
+      $or: [
+        { receiverId: loggedInUserId },
+        { senderId: loggedInUserId }
       ]
     });
 
     const chatPartnersIds = [
-      ...new Set (
-        messages.map((msg) => { 
-          msg.senderId === loggedInUserId.toString() ? 
-          msg.receiverId.toString() : 
-          msg.senderId.toString()
-        })
+      ...new Set(
+        messages.map((msg) =>
+          msg.senderId.toString() === loggedInUserId.toString()
+            ? msg.receiverId.toString()
+            : msg.senderId.toString()
+        )
       )
     ]
 
-    const chatPartners = await Message.find({_id: {$in:chatPartnersIds}}).select("-password");
+    const chatPartners = await User.find({ _id: { $in: chatPartnersIds } }).select("-password");
 
     res.status(200).json(chatPartners)
   } catch (error) {
